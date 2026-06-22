@@ -2,8 +2,16 @@
  * Settings bottom sheet — appearance (light/dark) and "Sair da conta".
  * Logout simply resets local state and returns to onboarding (no real auth).
  */
-import React from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Easing,
+  Modal,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Icon } from '@/components/ui';
@@ -19,6 +27,22 @@ interface SettingsSheetProps {
 export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps) {
   const { colors, mode, setMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+
+  // Only the white sheet slides up; the dark backdrop just fades in (Modal).
+  const translateY = useRef(new Animated.Value(height)).current;
+
+  useEffect(() => {
+    if (visible) {
+      translateY.setValue(height);
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, height, translateY]);
 
   const segmentStyle = (active: boolean) => [
     styles.segment,
@@ -39,14 +63,18 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar" />
-        <View
+        <Animated.View
           style={[
             styles.sheet,
             elevation[3],
-            { backgroundColor: colors.surface, paddingBottom: insets.bottom + 30 },
+            {
+              backgroundColor: colors.surface,
+              paddingBottom: insets.bottom + 30,
+              transform: [{ translateY }],
+            },
           ]}
         >
           <View style={styles.header}>
@@ -80,7 +108,7 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
               Sair da conta
             </AppText>
           </Pressable>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
