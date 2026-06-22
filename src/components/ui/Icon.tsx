@@ -5,7 +5,13 @@
 import React from 'react';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
-export type IconName = 'shelf' | 'search' | 'profile' | 'settings' | 'logout';
+export type IconName =
+  | 'shelf'
+  | 'libraries'
+  | 'search'
+  | 'profile'
+  | 'settings'
+  | 'logout';
 
 interface IconProps {
   name: IconName;
@@ -31,6 +37,14 @@ export function Icon({ name, size = 22, color, strokeWidth = 1.8 }: IconProps) {
           <Path d="M8.5 5v15" {...common} />
           <Path d="m13.5 6 4.2 14" {...common} />
           <Path d="M4 20h16" {...common} />
+        </Svg>
+      );
+    case 'libraries':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Path d="M12 3 3 7.5 12 12l9-4.5L12 3Z" {...common} />
+          <Path d="M3 12 12 16.5 21 12" {...common} />
+          <Path d="M3 16.5 12 21 21 16.5" {...common} />
         </Svg>
       );
     case 'search':
