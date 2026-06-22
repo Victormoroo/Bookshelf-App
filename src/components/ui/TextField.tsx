@@ -1,9 +1,12 @@
 /**
  * Text field — labeled input matching the Design System (Components / 05).
  * Default and focused states (focus highlights the border in petrol primary).
+ * When `password` is set, the field is masked and shows an eye toggle to reveal
+ * the text.
  */
 import React, { useState } from 'react';
 import {
+  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -13,42 +16,74 @@ import {
 
 import { fonts, palette, radius, useTheme } from '@/theme';
 import { AppText } from './AppText';
+import { Icon } from './Icon';
 
 interface TextFieldProps extends TextInputProps {
   label?: string;
+  /** Masks the input and shows a show/hide (eye) toggle. */
+  password?: boolean;
   containerStyle?: ViewStyle;
 }
 
-export function TextField({ label, containerStyle, style, ...rest }: TextFieldProps) {
+export function TextField({
+  label,
+  password = false,
+  containerStyle,
+  style,
+  onFocus,
+  onBlur,
+  ...rest
+}: TextFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
+  const [hidden, setHidden] = useState(true);
+
+  const handleFocus: NonNullable<TextInputProps['onFocus']> = (e) => {
+    setFocused(true);
+    onFocus?.(e);
+  };
+  const handleBlur: NonNullable<TextInputProps['onBlur']> = (e) => {
+    setFocused(false);
+    onBlur?.(e);
+  };
 
   return (
     <View style={containerStyle}>
       {label && (
-        <AppText
-          color={colors.textSecondary}
-          style={styles.label}
-        >
+        <AppText color={colors.textSecondary} style={styles.label}>
           {label}
         </AppText>
       )}
-      <TextInput
-        placeholderTextColor={colors.textMuted}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+      <View
         style={[
-          styles.input,
+          styles.inputWrap,
           {
             backgroundColor: colors.surface,
-            color: colors.text,
             borderColor: focused ? palette.primary : colors.border,
             borderWidth: focused ? 1.5 : 1,
           },
-          style,
         ]}
-        {...rest}
-      />
+      >
+        <TextInput
+          placeholderTextColor={colors.textMuted}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          secureTextEntry={password ? hidden : rest.secureTextEntry}
+          style={[styles.input, { color: colors.text }, style]}
+          {...rest}
+        />
+        {password && (
+          <Pressable
+            onPress={() => setHidden((h) => !h)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? 'Mostrar senha' : 'Ocultar senha'}
+            style={styles.toggle}
+          >
+            <Icon name={hidden ? 'eye' : 'eye-off'} size={20} color={colors.textMuted} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -59,11 +94,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginBottom: 6,
   },
-  input: {
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: radius.md,
     paddingHorizontal: 14,
+  },
+  input: {
+    flex: 1,
     paddingVertical: 13,
     fontFamily: fonts.body,
     fontSize: 14,
+  },
+  toggle: {
+    paddingLeft: 10,
   },
 });
