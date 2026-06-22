@@ -39,7 +39,7 @@ export function ReadingNowCard({ book, onPress }: ReadingNowCardProps) {
           <AppText variant="title" color={colors.text} numberOfLines={2} style={styles.title}>
             {book.title}
           </AppText>
-          <AppText variant="caption" color={colors.textMuted}>
+          <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>
             {book.author}
           </AppText>
           <View style={styles.progress}>
@@ -77,6 +77,9 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 4,
+    // Reserve two lines so every card has the same height in the carousel,
+    // whether the title wraps to one or two lines.
+    minHeight: 44,
   },
   progress: {
     marginTop: 12,
