@@ -154,7 +154,7 @@ export default function EditProfileScreen() {
           </AppText>
 
           <View style={styles.avatarBlock}>
-            <Avatar name={name || displayName} uri={previewUri} size={104} />
+            <Avatar name={displayName} uri={previewUri} size={104} />
             <Pressable onPress={pickImage} hitSlop={8} disabled={removing}>
               <AppText color={colors.link} style={styles.changePhoto}>
                 Alterar foto

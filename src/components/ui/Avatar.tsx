@@ -17,6 +17,7 @@ interface AvatarProps {
 export function Avatar({ name, uri, size = 58 }: AvatarProps) {
   const letter = (name?.trim().charAt(0) || '?').toUpperCase();
   const radius = size / 2;
+  const fontSize = size * 0.42;
 
   if (uri) {
     return (
@@ -32,7 +33,15 @@ export function Avatar({ name, uri, size = 58 }: AvatarProps) {
     <View style={[styles.fallback, { width: size, height: size, borderRadius: radius }]}>
       <AppText
         color={palette.onPrimary}
-        style={{ fontFamily: fonts.display, fontSize: size * 0.42 }}
+        // Proportional line height (instead of the inherited body line height) so
+        // the glyph renders identically at any avatar size.
+        style={{
+          fontFamily: fonts.display,
+          fontSize,
+          lineHeight: fontSize * 1.2,
+          includeFontPadding: false,
+          textAlign: 'center',
+        }}
       >
         {letter}
       </AppText>
