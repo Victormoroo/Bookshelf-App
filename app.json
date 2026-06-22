@@ -26,7 +26,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Bookshelf usa suas fotos para definir a imagem de perfil."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
