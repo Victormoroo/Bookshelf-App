@@ -29,7 +29,7 @@ export const initialLibrary: LibraryEntry[] = [
   { id: 2, status: 'own', currentPage: 0, rating: 0 },
   { id: 3, status: 'want', currentPage: 0, rating: 0 },
   { id: 4, status: 'read', currentPage: 136, rating: 5 },
-  { id: 5, status: 'own', currentPage: 0, rating: 0 },
+  { id: 5, status: 'reading', currentPage: 84, rating: 0 },
   { id: 6, status: 'read', currentPage: 464, rating: 4 },
   { id: 7, status: 'want', currentPage: 0, rating: 0 },
   { id: 8, status: 'own', currentPage: 0, rating: 0 },

@@ -4,7 +4,7 @@
  */
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { BookGridItem, ReadingNowCard, ShelfTabs } from '@/components/books';
 import { Screen } from '@/components/layout/Screen';
@@ -13,6 +13,9 @@ import { useLibrary } from '@/context/LibraryProvider';
 import { palette, space, useTheme } from '@/theme';
 import type { BookStatus, ShelvedBook } from '@/types';
 import { getGreeting } from '@/utils/greeting';
+
+const SCREEN_PADDING = space[4] + 4;
+const CARD_GAP = 12;
 
 const EMPTY_TITLES: Record<BookStatus, string> = {
   own: 'Nada por aqui ainda',
@@ -41,12 +44,22 @@ function toRows(books: ShelvedBook[]): (ShelvedBook | null)[][] {
 
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { counts, currentlyReading, shelfBooks } = useLibrary();
+  const { width } = useWindowDimensions();
+  const { counts, shelfBooks } = useLibrary();
   const [shelf, setShelf] = useState<BookStatus>('own');
 
   const books = shelfBooks(shelf);
   const rows = toRows(books);
   const greeting = getGreeting();
+
+  const reading = shelfBooks('reading');
+  // Carousel card a bit narrower than the viewport so the next one peeks.
+  const viewportWidth = width - SCREEN_PADDING * 2;
+  const cardWidth = Math.round(viewportWidth * 0.86);
+  // Trailing space so the last card can also snap to the left edge.
+  const carouselTrailing = viewportWidth - cardWidth;
+
+  const openBook = (id: number) => router.push(`/book/${id}`);
 
   return (
     <Screen scroll contentContainerStyle={styles.content}>
@@ -57,13 +70,49 @@ export default function HomeScreen() {
         Olá, Marina
       </AppText>
 
-      {currentlyReading && (
-        <View style={styles.reading}>
-          <ReadingNowCard
-            book={currentlyReading}
-            onPress={() => router.push(`/book/${currentlyReading.id}`)}
-          />
+      {reading.length === 0 && (
+        <View
+          style={[
+            styles.reading,
+            styles.noReading,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <AppText variant="label" color={palette.accent} style={styles.noReadingKicker}>
+            Lendo agora
+          </AppText>
+          <AppText variant="title" color={colors.text} style={styles.noReadingTitle}>
+            Nenhuma leitura em andamento
+          </AppText>
+          <AppText variant="caption" color={colors.textMuted}>
+            Marque um livro como "Lendo" para acompanhar o progresso por aqui.
+          </AppText>
         </View>
+      )}
+
+      {reading.length === 1 && (
+        <View style={styles.reading}>
+          <ReadingNowCard book={reading[0]} onPress={() => openBook(reading[0].id)} />
+        </View>
+      )}
+
+      {reading.length > 1 && (
+        <ScrollView
+          horizontal
+          style={styles.reading}
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={cardWidth + CARD_GAP}
+          snapToAlignment="start"
+          disableIntervalMomentum
+          contentContainerStyle={[styles.carousel, { paddingRight: carouselTrailing }]}
+        >
+          {reading.map((book) => (
+            <View key={book.id} style={{ width: cardWidth }}>
+              <ReadingNowCard book={book} onPress={() => openBook(book.id)} />
+            </View>
+          ))}
+        </ScrollView>
       )}
 
       <View style={styles.tabs}>
@@ -114,6 +163,22 @@ const styles = StyleSheet.create({
   },
   reading: {
     marginTop: 18,
+  },
+  carousel: {
+    gap: CARD_GAP,
+  },
+  noReading: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+  },
+  noReadingKicker: {
+    fontSize: 8.5,
+    letterSpacing: 0.12 * 8.5,
+  },
+  noReadingTitle: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   tabs: {
     marginTop: 24,
