@@ -1,4 +1,5 @@
 export { AppText } from './AppText';
+export { Avatar } from './Avatar';
 export { Button } from './Button';
 export { BookCover } from './BookCover';
 export { BookSpines } from './BookSpines';

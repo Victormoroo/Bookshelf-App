@@ -9,18 +9,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
 import { SettingsSheet, StatCard } from '@/components/profile';
-import { AppText, Icon } from '@/components/ui';
+import { AppText, Avatar, Icon } from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useLibrary } from '@/context/LibraryProvider';
 import { palette, space, statusColor, useTheme } from '@/theme';
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { displayName, isAdmin, signOut } = useAuth();
+  const { displayName, avatarUrl, isAdmin, signOut } = useAuth();
   const { counts, total, pagesRead, reset } = useLibrary();
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  const avatarLetter = displayName.charAt(0).toUpperCase();
 
   const logout = async () => {
     setSettingsOpen(false);
@@ -33,11 +31,7 @@ export default function ProfileScreen() {
     <Screen scroll contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.identity}>
-          <View style={styles.avatar}>
-            <AppText color={palette.onPrimary} style={styles.avatarLetter}>
-              {avatarLetter}
-            </AppText>
-          </View>
+          <Avatar name={displayName} uri={avatarUrl} size={58} />
           <View style={styles.identityText}>
             <AppText color={colors.text} style={styles.name} numberOfLines={1}>
               {displayName}
@@ -132,18 +126,6 @@ const styles = StyleSheet.create({
   },
   identityText: {
     flexShrink: 1,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: palette.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLetter: {
-    fontFamily: 'Spectral_500Medium',
-    fontSize: 24,
   },
   name: {
     fontFamily: 'Spectral_500Medium',

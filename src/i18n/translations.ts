@@ -10,6 +10,8 @@ export type Language = 'pt' | 'en';
 export const translations = {
   pt: {
     'settings.title': 'Configurações',
+    'settings.profile': 'Perfil',
+    'settings.editProfile': 'Editar perfil',
     'settings.appearance': 'Aparência',
     'settings.theme.light': 'Claro',
     'settings.theme.dark': 'Escuro',
@@ -22,6 +24,8 @@ export const translations = {
   },
   en: {
     'settings.title': 'Settings',
+    'settings.profile': 'Profile',
+    'settings.editProfile': 'Edit profile',
     'settings.appearance': 'Appearance',
     'settings.theme.light': 'Light',
     'settings.theme.dark': 'Dark',

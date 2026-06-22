@@ -19,6 +19,8 @@ interface AuthContextValue {
   user: User | null;
   /** Display name: user_metadata name → email handle → fallback. */
   displayName: string;
+  /** Avatar image URL from user_metadata.avatar_url, if set. */
+  avatarUrl: string | null;
   /** True when the signed-in user has the admin role (app_metadata.role). */
   isAdmin: boolean;
   /** True until the persisted session has been loaded. */
@@ -75,10 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(() => {
     const user = session?.user ?? null;
     const role = (user?.app_metadata as { role?: string } | undefined)?.role;
+    const meta = user?.user_metadata as { avatar_url?: string } | undefined;
     return {
       session,
       user,
       displayName: resolveDisplayName(user),
+      avatarUrl: meta?.avatar_url ?? null,
       isAdmin: role === 'admin',
       loading,
       signIn,

@@ -5,6 +5,7 @@
  *
  * Only the white sheet slides up; the dark backdrop just fades in (Modal).
  */
+import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -126,6 +127,26 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
           </View>
 
           <AppText variant="label" color={palette.primaryMuted} style={styles.section}>
+            {t('settings.profile')}
+          </AppText>
+          <Pressable
+            onPress={() => {
+              onClose();
+              router.push('/edit-profile');
+            }}
+            style={({ pressed }) => [
+              styles.linkRow,
+              { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Icon name="profile" size={19} color={colors.textSecondary} />
+            <AppText color={colors.text} style={styles.linkLabel}>
+              {t('settings.editProfile')}
+            </AppText>
+            <Icon name="chevron-right" size={19} color={colors.textMuted} />
+          </Pressable>
+
+          <AppText variant="label" color={palette.primaryMuted} style={styles.section}>
             {t('settings.appearance')}
           </AppText>
           <Segmented options={themeOptions} selected={preference} onSelect={setPreference} />
@@ -183,6 +204,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.12 * 10,
     marginBottom: 10,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 24,
+  },
+  linkLabel: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
   },
   segmented: {
     flexDirection: 'row',

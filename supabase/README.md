@@ -40,3 +40,28 @@ do usuário logado e a função valida o papel de admin.
 
 **Authentication → Sign In / Providers (Email)** → desligar *"Allow new users to
 sign up"*. Os usuários passam a ser criados só pelo admin (no app ou no painel).
+
+## 4. Bucket de avatars (foto de perfil)
+
+A foto de perfil (tela "Editar perfil") é enviada para o Storage e a URL pública
+fica em `user_metadata.avatar_url`.
+
+1. **Storage → Create bucket** → nome **`avatars`**, marque **Public bucket**.
+2. **SQL Editor** — policies para cada usuário gerir só a própria pasta
+   (`<user_id>/...`):
+
+```sql
+-- Leitura pública das imagens do bucket avatars
+create policy "Avatares são públicos"
+on storage.objects for select
+using ( bucket_id = 'avatars' );
+
+-- Cada usuário cria/atualiza/remove apenas dentro da sua própria pasta
+create policy "Usuário gerencia seu avatar"
+on storage.objects for all to authenticated
+using ( bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text )
+with check ( bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text );
+```
+
+Sem o bucket, a edição de **nome** continua funcionando; só o upload da **foto**
+falha (o app mostra um aviso).

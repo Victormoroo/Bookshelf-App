@@ -51,6 +51,7 @@ function NavigationTree() {
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="users" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen
           name="book/[id]"
           options={{ animation: 'slide_from_right' }}
