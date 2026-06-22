@@ -28,6 +28,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toast } from '@/components/ui';
 import { LibraryProvider } from '@/context/LibraryProvider';
 import { ToastProvider } from '@/context/ToastProvider';
+import { LanguageProvider } from '@/i18n';
 import { ThemeProvider, useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -82,11 +83,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ToastProvider>
-          <LibraryProvider>
-            <NavigationTree />
-          </LibraryProvider>
-        </ToastProvider>
+        <LanguageProvider>
+          <ToastProvider>
+            <LibraryProvider>
+              <NavigationTree />
+            </LibraryProvider>
+          </ToastProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

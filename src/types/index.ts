@@ -42,4 +42,8 @@ export interface StatusMeta {
   darkText: boolean;
 }
 
+/** Resolved theme (actual palette in use). */
 export type ThemeMode = 'light' | 'dark';
+
+/** User's theme preference — "system" follows the OS color scheme. */
+export type ThemePreference = 'light' | 'dark' | 'system';

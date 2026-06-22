@@ -1,6 +1,9 @@
 /**
- * Settings bottom sheet — appearance (light/dark) and "Sair da conta".
- * Logout simply resets local state and returns to onboarding (no real auth).
+ * Settings bottom sheet — appearance (light / dark / system), language
+ * (Portuguese / English) and "Sair da conta". Logout resets local state and
+ * returns to login (no real auth this stage).
+ *
+ * Only the white sheet slides up; the dark backdrop just fades in (Modal).
  */
 import React, { useEffect, useRef } from 'react';
 import {
@@ -15,8 +18,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Icon } from '@/components/ui';
+import { useLanguage } from '@/i18n';
+import type { Language } from '@/i18n';
 import { elevation, fonts, palette, useTheme } from '@/theme';
-import type { ThemeMode } from '@/types';
+import type { ThemePreference } from '@/types';
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -24,12 +29,17 @@ interface SettingsSheetProps {
   onLogout: () => void;
 }
 
+interface Segment<T> {
+  value: T;
+  label: string;
+}
+
 export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps) {
-  const { colors, mode, setMode } = useTheme();
+  const { colors, preference, setPreference } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
 
-  // Only the white sheet slides up; the dark backdrop just fades in (Modal).
   const translateY = useRef(new Animated.Value(height)).current;
 
   useEffect(() => {
@@ -44,23 +54,50 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
     }
   }, [visible, height, translateY]);
 
-  const segmentStyle = (active: boolean) => [
-    styles.segment,
-    active && [styles.segmentActive, { backgroundColor: colors.surface }],
+  const themeOptions: Segment<ThemePreference>[] = [
+    { value: 'light', label: `☀  ${t('settings.theme.light')}` },
+    { value: 'dark', label: `☾  ${t('settings.theme.dark')}` },
+    { value: 'system', label: `◐  ${t('settings.theme.system')}` },
   ];
-  const segmentText = (active: boolean) =>
-    active ? colors.text : colors.textMuted;
 
-  const ThemeOption = ({ value, label }: { value: ThemeMode; label: string }) => {
-    const active = mode === value;
-    return (
-      <Pressable style={segmentStyle(active)} onPress={() => setMode(value)}>
-        <AppText color={segmentText(active)} style={styles.segmentLabel}>
-          {label}
-        </AppText>
-      </Pressable>
-    );
-  };
+  const languageOptions: Segment<Language>[] = [
+    { value: 'pt', label: t('settings.language.pt') },
+    { value: 'en', label: t('settings.language.en') },
+  ];
+
+  const Segmented = <T,>({
+    options,
+    selected,
+    onSelect,
+  }: {
+    options: Segment<T>[];
+    selected: T;
+    onSelect: (value: T) => void;
+  }) => (
+    <View style={[styles.segmented, { backgroundColor: colors.surfaceAlt }]}>
+      {options.map((option) => {
+        const active = option.value === selected;
+        return (
+          <Pressable
+            key={String(option.value)}
+            onPress={() => onSelect(option.value)}
+            style={[
+              styles.segment,
+              active && [styles.segmentActive, { backgroundColor: colors.surface }],
+            ]}
+          >
+            <AppText
+              color={active ? colors.text : colors.textMuted}
+              numberOfLines={1}
+              style={styles.segmentLabel}
+            >
+              {option.label}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -79,7 +116,7 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
         >
           <View style={styles.header}>
             <AppText color={colors.text} style={styles.title}>
-              Configurações
+              {t('settings.title')}
             </AppText>
             <Pressable onPress={onClose} hitSlop={8}>
               <AppText color={colors.textMuted} style={styles.close}>
@@ -89,15 +126,17 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
           </View>
 
           <AppText variant="label" color={palette.primaryMuted} style={styles.section}>
-            Aparência
+            {t('settings.appearance')}
           </AppText>
-          <View style={[styles.segmented, { backgroundColor: colors.surfaceAlt }]}>
-            <ThemeOption value="light" label="☀  Claro" />
-            <ThemeOption value="dark" label="☾  Escuro" />
-          </View>
+          <Segmented options={themeOptions} selected={preference} onSelect={setPreference} />
 
           <AppText variant="label" color={palette.primaryMuted} style={styles.section}>
-            Conta
+            {t('settings.language')}
+          </AppText>
+          <Segmented options={languageOptions} selected={language} onSelect={setLanguage} />
+
+          <AppText variant="label" color={palette.primaryMuted} style={styles.section}>
+            {t('settings.account')}
           </AppText>
           <Pressable
             onPress={onLogout}
@@ -105,7 +144,7 @@ export function SettingsSheet({ visible, onClose, onLogout }: SettingsSheetProps
           >
             <Icon name="logout" size={17} color="#C46A52" strokeWidth={1.9} />
             <AppText color="#C46A52" style={styles.logoutLabel}>
-              Sair da conta
+              {t('settings.logout')}
             </AppText>
           </Pressable>
         </Animated.View>
@@ -134,6 +173,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Spectral_500Medium',
     fontSize: 22,
+    lineHeight: 30,
   },
   close: {
     fontSize: 22,
