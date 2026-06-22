@@ -21,7 +21,7 @@ export default function ProfileScreen() {
   const logout = () => {
     setSettingsOpen(false);
     reset();
-    router.replace('/onboarding');
+    router.replace('/login');
   };
 
   return (

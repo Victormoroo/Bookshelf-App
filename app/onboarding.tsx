@@ -1,15 +1,28 @@
 /**
  * Onboarding — the app's visual entry point (stands in for "login"). Three
- * slides; "Pular" or finishing the last slide goes straight to the shelves.
- * No authentication, validation, or session is created (by design, this stage).
+ * swipeable slides; "Pular", "Continuar" or finishing the last slide goes
+ * straight to the shelves. No authentication/session is created (this stage).
+ *
+ * The center content is a horizontal paging ScrollView, so the user can either
+ * drag sideways or tap "Continuar" to advance — both stay in sync with the
+ * progress dots.
  */
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
 import { AppText, BookSpines, Button } from '@/components/ui';
 import { palette, space, useTheme } from '@/theme';
+import { setOnboardingSeen } from '@/utils/preferences';
 
 const SLIDES = [
   {
@@ -28,80 +41,123 @@ const SLIDES = [
 
 export default function Onboarding() {
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
   const isLast = index === SLIDES.length - 1;
 
-  const enterApp = () => router.replace('/(tabs)');
-  const next = () => (isLast ? enterApp() : setIndex((i) => i + 1));
+  const goToLogin = () => router.replace('/login');
 
-  const slide = SLIDES[index];
+  const dontShowAgain = async () => {
+    await setOnboardingSeen(true);
+    goToLogin();
+  };
+
+  const goTo = (i: number) => {
+    const target = Math.max(0, Math.min(SLIDES.length - 1, i));
+    scrollRef.current?.scrollTo({ x: target * width, animated: true });
+    setIndex(target);
+  };
+
+  const next = () => (isLast ? goToLogin() : goTo(index + 1));
+
+  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (i !== index) setIndex(i);
+  };
 
   return (
     <Screen style={styles.screen}>
       <View style={styles.skipRow}>
-        <Pressable onPress={enterApp} hitSlop={8}>
+        <Pressable onPress={goToLogin} hitSlop={8}>
           <AppText variant="caption" color={colors.textMuted}>
             Pular
           </AppText>
         </Pressable>
       </View>
 
-      <View style={styles.center}>
-        <BookSpines variant="hero" />
-        <View style={styles.copy}>
-          <AppText
-            color={colors.text}
-            style={styles.title}
-          >
-            {slide.title}
-          </AppText>
-          <AppText variant="body" color={colors.textSecondary} style={styles.body}>
-            {slide.body}
-          </AppText>
-        </View>
-      </View>
-
-      <View style={styles.dots}>
-        {SLIDES.map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              {
-                width: i === index ? 18 : 7,
-                backgroundColor: i === index ? palette.primary : '#D8CFBE',
-              },
-            ]}
-          />
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={onMomentumEnd}
+        style={styles.pager}
+        contentContainerStyle={styles.pagerContent}
+      >
+        {SLIDES.map((slide, i) => (
+          <View key={i} style={[styles.page, { width }]}>
+            <BookSpines variant="hero" />
+            <View style={styles.copy}>
+              <AppText color={colors.text} style={styles.title}>
+                {slide.title}
+              </AppText>
+              <AppText variant="body" color={colors.textSecondary} style={styles.body}>
+                {slide.body}
+              </AppText>
+            </View>
+          </View>
         ))}
-      </View>
+      </ScrollView>
 
-      <Button
-        label={isLast ? 'Começar minha estante' : 'Continuar'}
-        size="large"
-        fullWidth
-        onPress={next}
-        style={styles.cta}
-      />
+      <View style={styles.footer}>
+        <View style={styles.dots}>
+          {SLIDES.map((_, i) => (
+            <Pressable key={i} onPress={() => goTo(i)} hitSlop={8}>
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    width: i === index ? 18 : 7,
+                    backgroundColor: i === index ? palette.primary : '#D8CFBE',
+                  },
+                ]}
+              />
+            </Pressable>
+          ))}
+        </View>
+
+        <Button
+          label={isLast ? 'Começar minha estante' : 'Continuar'}
+          size="large"
+          fullWidth
+          onPress={next}
+          style={styles.cta}
+        />
+
+        {isLast && (
+          <Pressable onPress={dontShowAgain} hitSlop={8} style={styles.dontShow}>
+            <AppText variant="caption" color={colors.textMuted} style={styles.dontShowText}>
+              Não mostrar novamente
+            </AppText>
+          </Pressable>
+        )}
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    paddingHorizontal: 28,
     paddingBottom: 28,
   },
   skipRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     paddingTop: space[2],
+    paddingHorizontal: 28,
   },
-  center: {
+  pager: {
     flex: 1,
+  },
+  pagerContent: {
+    flexGrow: 1,
+  },
+  page: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 26,
+    paddingHorizontal: 28,
   },
   copy: {
     alignItems: 'center',
@@ -118,6 +174,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
   },
+  footer: {
+    paddingHorizontal: 28,
+  },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -131,5 +190,12 @@ const styles = StyleSheet.create({
   cta: {
     borderRadius: 14,
     paddingVertical: 16,
+  },
+  dontShow: {
+    alignSelf: 'center',
+    paddingVertical: 14,
+  },
+  dontShowText: {
+    textDecorationLine: 'underline',
   },
 });

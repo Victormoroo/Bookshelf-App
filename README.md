@@ -35,8 +35,9 @@ Requer Node 18+ e o app **Expo Go** (ou um simulador iOS / emulador Android).
 .
 ├── app/                        # Rotas (Expo Router, file-based)
 │   ├── _layout.tsx             # Root: fontes, providers, Stack, Toast
-│   ├── index.tsx               # Entrada → redireciona p/ onboarding
-│   ├── onboarding.tsx          # Boas-vindas (entrada visual / "login")
+│   ├── index.tsx               # Entrada → onboarding ou login (flag local)
+│   ├── onboarding.tsx          # Boas-vindas (3 cards, swipe + "não mostrar novamente")
+│   ├── login.tsx               # Login visual (email/senha, sem validação)
 │   ├── (tabs)/                 # Navegação por abas
 │   │   ├── _layout.tsx         # Tab bar customizada (Estante/Buscar/Perfil)
 │   │   ├── index.tsx           # Home — Estante
@@ -57,12 +58,13 @@ Requer Node 18+ e o app **Expo Go** (ou um simulador iOS / emulador Android).
 │   │   ├── LibraryProvider.tsx # Fonte de verdade da estante + ações
 │   │   └── ToastProvider.tsx   # Toast/snackbar
 │   ├── utils/
-│   │   └── cover.ts            # Helpers do gradiente da capa
+│   │   ├── cover.ts            # Helpers do gradiente da capa
+│   │   └── preferences.ts      # Flag local "não mostrar onboarding" (AsyncStorage)
 │   └── components/
 │       ├── layout/Screen.tsx   # Wrapper de tela (safe area + fundo)
 │       ├── ui/                 # Primitivas reutilizáveis
-│       │   ├── AppText, Button, Chip, StatusBadge, SearchBar,
-│       │   ├── ProgressBar, StarRating, BookCover, BookSpines,
+│       │   ├── AppText, Button, Chip, StatusBadge, SearchBar, TextField,
+│       │   ├── ProgressBar, StarRating, BookCover, BookSpines, Logo,
 │       │   └── EmptyState, Icon, Toast
 │       ├── books/              # ReadingNowCard, BookGridItem, ShelfTabs, SearchResultRow
 │       └── profile/            # StatCard, SettingsSheet
@@ -78,7 +80,8 @@ Alias de import: `@/*` → `src/*` (ex.: `import { useTheme } from '@/theme'`).
 
 | Tela | Origem no projeto importado | Estados visuais |
 |------|------------------------------|-----------------|
-| **Onboarding** | Protótipo / Wireframes (3 telas) | 3 slides, indicadores, "Pular" |
+| **Onboarding** | Protótipo / Wireframes (3 telas) | 3 cards com **swipe** + botão, indicadores tocáveis, "Pular", "Não mostrar novamente" (último card) |
+| **Login** | Mínimo coerente (não existe no design) | Email + senha, "Entrar" → Home (sem validação/auth) |
 | **Estante (Home)** | Wireframes Home · A ★ | Card "Lendo agora", abas por status com contagem, grade de capas, **estado vazio** por aba |
 | **Buscar / Adicionar** | Wireframes Add · A ★ | Sugestões (idle), **skeleton de carregamento (falso)**, resultados, "nenhum resultado", adicionar → toast |
 | **Detalhe do livro** | Wireframes Detail · A ★ | Seletor de categoria, progresso de leitura (±10 pág.), avaliação por estrelas, sinopse, remover |
@@ -93,7 +96,7 @@ Transcritos diretamente do "Bookshelf Design System": paleta petróleo/papel/âm
 
 ## Decisões e observações técnicas
 
-- **"Login" = Onboarding.** O projeto importado **não tem tela de credenciais**; a entrada é o onboarding. Ao tocar em "Começar minha estante" (ou "Pular") o usuário vai direto para a Home — sem autenticação, validação ou sessão, exatamente como pedido. "Sair da conta" (Perfil → Configurações) apenas reinicia o estado local e volta ao onboarding.
+- **Fluxo de entrada: Onboarding → Login → Home.** O onboarding tem 3 cards navegáveis por **swipe** ou botão; no último card, "Não mostrar novamente" grava uma flag local (AsyncStorage) e, nas próximas aberturas, o app vai direto para o **Login** (decisão em `app/index.tsx`). O Login é **apenas visual** (email/senha, sem validação, auth ou sessão): "Entrar" vai direto para a Home, como pedido. A tela de login não existe no design importado — foi criada como solução mínima e coerente, já no formato email/senha para facilitar conectar ao Supabase depois. "Sair da conta" (Perfil → Configurações) reinicia o estado local e volta ao Login.
 - **Dados dos livros são mock e temporários** (`src/data/catalog.ts`). Título, autor, capa, sinopse, ano, gênero e páginas virão de uma **API externa de livros** numa etapa futura. Por isso **não** há cadastro manual, upload de capa nem preenchimento de metadados — a busca e o "adicionar" representam apenas o fluxo visual.
 - **Capas** são placeholders em gradiente (a partir de uma cor base), com o título sobreposto — serão substituídas por imagens reais da API.
 - **Estado** vive em memória via React Context (`LibraryProvider`). Sem persistência: reabrir o app recomeça do onboarding e da estante inicial. A arquitetura já isola as ações (`setStatus`, `quickAdd`, `bumpProgress`, `setRating`, `remove`), facilitando trocar a fonte por Supabase/AsyncStorage depois.
