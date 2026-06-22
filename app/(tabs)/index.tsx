@@ -12,6 +12,7 @@ import { AppText, EmptyState } from '@/components/ui';
 import { useLibrary } from '@/context/LibraryProvider';
 import { palette, space, useTheme } from '@/theme';
 import type { BookStatus, ShelvedBook } from '@/types';
+import { getGreeting } from '@/utils/greeting';
 
 const EMPTY_TITLES: Record<BookStatus, string> = {
   own: 'Nada por aqui ainda',
@@ -45,11 +46,12 @@ export default function HomeScreen() {
 
   const books = shelfBooks(shelf);
   const rows = toRows(books);
+  const greeting = getGreeting();
 
   return (
     <Screen scroll contentContainerStyle={styles.content}>
       <AppText variant="label" color={palette.primaryMuted}>
-        Boa noite
+        {greeting}
       </AppText>
       <AppText color={colors.text} style={styles.greeting}>
         Olá, Marina
