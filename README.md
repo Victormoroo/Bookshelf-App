@@ -2,7 +2,18 @@
 
 Aplicativo mobile de estante de leitura, construído em **React Native + Expo (SDK 54) + TypeScript** com **Expo Router**. Esta é a primeira versão funcional de **interface e navegação**, fiel ao projeto importado do Claude Design (Design System, Wireframes e Protótipo interativo).
 
-> Sem backend, sem Supabase, sem API externa e sem autenticação real nesta etapa. Toda a "persistência" é estado local em memória.
+> A **autenticação de usuário** usa **Supabase** (login com e-mail/senha). O restante — livros, estante, coleções — ainda é estado local/mock; API externa de livros virá depois.
+
+## Configuração do Supabase
+
+A autenticação lê as credenciais de variáveis `EXPO_PUBLIC_*`. Copie `.env.example` para `.env.local` e preencha:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+EXPO_PUBLIC_SUPABASE_KEY=sua-chave-publishable
+```
+
+`.env.local` é ignorado pelo Git. O cliente fica em `src/lib/supabase.ts` (sessão persistida via AsyncStorage). Não há cadastro no app — os usuários são criados no Supabase.
 
 ---
 
@@ -96,7 +107,8 @@ Transcritos diretamente do "Bookshelf Design System": paleta petróleo/papel/âm
 
 ## Decisões e observações técnicas
 
-- **Fluxo de entrada: Onboarding → Login → Home.** O onboarding tem 3 cards navegáveis por **swipe** ou botão; no último card, "Não mostrar novamente" grava uma flag local (AsyncStorage) e, nas próximas aberturas, o app vai direto para o **Login** (decisão em `app/index.tsx`). O Login é **apenas visual** (email/senha, sem validação, auth ou sessão): "Entrar" vai direto para a Home, como pedido. A tela de login não existe no design importado — foi criada como solução mínima e coerente, já no formato email/senha para facilitar conectar ao Supabase depois. "Sair da conta" (Perfil → Configurações) reinicia o estado local e volta ao Login.
+- **Fluxo de entrada: Onboarding → Login → Home.** O onboarding tem 3 cards navegáveis por **swipe** ou botão; no último card, "Não mostrar novamente" grava uma flag local (AsyncStorage). Com **sessão ativa**, o app pula direto para a Home; senão vai para o Login (ou onboarding, se ainda não dispensado) — decisão em `app/index.tsx`.
+- **Autenticação (Supabase).** O Login usa `signInWithPassword` (e-mail/senha) via `AuthProvider` (`src/context/AuthProvider.tsx`), com sessão persistida em AsyncStorage e auto-refresh. Sem cadastro no app (usuários criados no Supabase). O Perfil mostra o nome/e-mail da sessão; "Sair da conta" faz `signOut()` e volta ao Login. A tela de login não existe no design importado — foi criada como solução mínima e coerente.
 - **Dados dos livros são mock e temporários** (`src/data/catalog.ts`). Título, autor, capa, sinopse, ano, gênero e páginas virão de uma **API externa de livros** numa etapa futura. Por isso **não** há cadastro manual, upload de capa nem preenchimento de metadados — a busca e o "adicionar" representam apenas o fluxo visual.
 - **Capas** são placeholders em gradiente (a partir de uma cor base), com o título sobreposto — serão substituídas por imagens reais da API.
 - **Estado** vive em memória via React Context (`LibraryProvider`). Sem persistência: reabrir o app recomeça do onboarding e da estante inicial. A arquitetura já isola as ações (`setStatus`, `quickAdd`, `bumpProgress`, `setRating`, `remove`), facilitando trocar a fonte por Supabase/AsyncStorage depois.

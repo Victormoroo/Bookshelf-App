@@ -1,7 +1,7 @@
 /**
- * Login — visual only (this stage). Email + password fields with NO validation,
- * authentication, or session: tapping "Entrar" goes straight to the shelves.
- * Wired to email/password now so it can later connect to Supabase auth.
+ * Login — authenticates against Supabase (email + password). No sign-up here;
+ * users are created elsewhere. On success the session is persisted and we go to
+ * the shelves.
  *
  * The KeyboardAvoidingView wraps the ScrollView (not the other way around) so
  * the "Entrar" button is pushed above the keyboard / can be scrolled into view.
@@ -19,16 +19,30 @@ import {
 
 import { Screen } from '@/components/layout/Screen';
 import { AppText, Button, Logo, TextField } from '@/components/ui';
-import { fonts, space, useTheme } from '@/theme';
+import { useAuth } from '@/context/AuthProvider';
+import { fonts, palette, space, useTheme } from '@/theme';
 
 export default function Login() {
   const { colors } = useTheme();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
-  // No auth/validation yet — go straight to the app.
-  const signIn = () => router.replace('/(tabs)');
+  const handleSignIn = async () => {
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    const { error: signInError } = await signIn(email, password);
+    setSubmitting(false);
+    if (signInError) {
+      setError('Não foi possível entrar. Verifique e-mail e senha.');
+      return;
+    }
+    router.replace('/(tabs)');
+  };
 
   // When a field is focused, scroll to the end so the "Entrar" button shows
   // above the keyboard. Small delay lets the keyboard finish opening.
@@ -79,15 +93,30 @@ export default function Login() {
               placeholder="••••••••"
               password
               autoCapitalize="none"
+              onSubmitEditing={handleSignIn}
+              returnKeyType="go"
             />
 
-            <Pressable onPress={signIn} hitSlop={8} style={styles.forgot}>
+            <Pressable hitSlop={8} style={styles.forgot}>
               <AppText variant="caption" color={colors.link} style={styles.forgotText}>
                 Esqueci minha senha
               </AppText>
             </Pressable>
 
-            <Button label="Entrar" size="large" fullWidth onPress={signIn} style={styles.cta} />
+            {error && (
+              <AppText variant="caption" color={palette.error} style={styles.error}>
+                {error}
+              </AppText>
+            )}
+
+            <Button
+              label="Entrar"
+              size="large"
+              fullWidth
+              loading={submitting}
+              onPress={handleSignIn}
+              style={styles.cta}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -127,6 +156,9 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontFamily: fonts.bodySemiBold,
+  },
+  error: {
+    textAlign: 'center',
   },
   cta: {
     marginTop: space[2],

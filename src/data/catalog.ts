@@ -23,7 +23,7 @@ export const catalog: Book[] = [
   { id: 12, title: 'O Pequeno Príncipe', author: 'Antoine de Saint-Exupéry', pages: 96, genre: 'Fábula', year: 1943, color: '#2E7C8C', description: 'O encontro de um aviador com um pequeno príncipe que viaja entre planetas. Uma fábula atemporal.' },
 ];
 
-/** Marina's starting shelf (matches the prototype). */
+/** Starting shelf used to compose the screens (matches the prototype). */
 export const initialLibrary: LibraryEntry[] = [
   { id: 1, status: 'reading', currentPage: 168, rating: 0 },
   { id: 2, status: 'own', currentPage: 0, rating: 0 },

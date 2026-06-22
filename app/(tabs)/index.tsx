@@ -9,6 +9,7 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { BookGridItem, ReadingNowCard, ShelfTabs } from '@/components/books';
 import { Screen } from '@/components/layout/Screen';
 import { AppText, EmptyState } from '@/components/ui';
+import { useAuth } from '@/context/AuthProvider';
 import { useLibrary } from '@/context/LibraryProvider';
 import { palette, space, useTheme } from '@/theme';
 import type { BookStatus, ShelvedBook } from '@/types';
@@ -45,8 +46,12 @@ function toRows(books: ShelvedBook[]): (ShelvedBook | null)[][] {
 export default function HomeScreen() {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
+  const { displayName } = useAuth();
   const { counts, shelfBooks } = useLibrary();
   const [shelf, setShelf] = useState<BookStatus>('own');
+
+  // Greet by first name (the display name may be a full name or email handle).
+  const firstName = displayName.split(' ')[0];
 
   const books = shelfBooks(shelf);
   const rows = toRows(books);
@@ -67,7 +72,7 @@ export default function HomeScreen() {
         {greeting}
       </AppText>
       <AppText color={colors.text} style={styles.greeting}>
-        Olá, Marina
+        Olá, {firstName}
       </AppText>
 
       {reading.length === 0 && (

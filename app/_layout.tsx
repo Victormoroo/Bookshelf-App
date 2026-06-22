@@ -26,6 +26,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Toast } from '@/components/ui';
+import { AuthProvider } from '@/context/AuthProvider';
 import { LibraryProvider } from '@/context/LibraryProvider';
 import { ToastProvider } from '@/context/ToastProvider';
 import { LanguageProvider } from '@/i18n';
@@ -49,6 +50,7 @@ function NavigationTree() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="users" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen
           name="book/[id]"
           options={{ animation: 'slide_from_right' }}
@@ -82,15 +84,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <ToastProvider>
-            <LibraryProvider>
-              <NavigationTree />
-            </LibraryProvider>
-          </ToastProvider>
-        </LanguageProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <ToastProvider>
+              <LibraryProvider>
+                <NavigationTree />
+              </LibraryProvider>
+            </ToastProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

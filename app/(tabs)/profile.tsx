@@ -1,7 +1,7 @@
 /**
- * Profile (Perfil) — reader identity, reading-in-numbers stats, pages-read
- * highlight, and a settings sheet (theme + logout). Logout resets local state
- * and returns to onboarding (no real session to clear, by design this stage).
+ * Profile (Perfil) — reader identity (from the Supabase session), reading-in-
+ * numbers stats, pages-read highlight, and a settings sheet (theme + logout).
+ * Logout clears the Supabase session and local state, returning to login.
  */
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -10,16 +10,21 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Screen } from '@/components/layout/Screen';
 import { SettingsSheet, StatCard } from '@/components/profile';
 import { AppText, Icon } from '@/components/ui';
+import { useAuth } from '@/context/AuthProvider';
 import { useLibrary } from '@/context/LibraryProvider';
 import { palette, space, statusColor, useTheme } from '@/theme';
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
+  const { displayName, isAdmin, signOut } = useAuth();
   const { counts, total, pagesRead, reset } = useLibrary();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const logout = () => {
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+
+  const logout = async () => {
     setSettingsOpen(false);
+    await signOut();
     reset();
     router.replace('/login');
   };
@@ -30,12 +35,12 @@ export default function ProfileScreen() {
         <View style={styles.identity}>
           <View style={styles.avatar}>
             <AppText color={palette.onPrimary} style={styles.avatarLetter}>
-              M
+              {avatarLetter}
             </AppText>
           </View>
-          <View>
-            <AppText color={colors.text} style={styles.name}>
-              Marina
+          <View style={styles.identityText}>
+            <AppText color={colors.text} style={styles.name} numberOfLines={1}>
+              {displayName}
             </AppText>
             <AppText variant="caption" color={colors.textMuted}>
               {total} livros na estante
@@ -77,6 +82,27 @@ export default function ProfileScreen() {
         </AppText>
       </View>
 
+      {isAdmin && (
+        <>
+          <AppText variant="label" color={palette.primaryMuted} style={styles.section}>
+            Administração
+          </AppText>
+          <Pressable
+            onPress={() => router.push('/users')}
+            style={({ pressed }) => [
+              styles.adminRow,
+              { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Icon name="profile" size={20} color={colors.textSecondary} />
+            <AppText color={colors.text} style={styles.adminLabel}>
+              Gerir usuários
+            </AppText>
+            <Icon name="chevron-right" size={20} color={colors.textMuted} />
+          </Pressable>
+        </>
+      )}
+
       <SettingsSheet
         visible={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -102,6 +128,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    flex: 1,
+  },
+  identityText: {
+    flexShrink: 1,
   },
   avatar: {
     width: 58,
@@ -126,6 +156,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: space[3],
   },
   section: {
     fontSize: 10,
@@ -159,5 +190,19 @@ const styles = StyleSheet.create({
   pagesSub: {
     fontSize: 12.5,
     marginTop: 6,
+  },
+  adminRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  adminLabel: {
+    flex: 1,
+    fontFamily: 'PublicSans_600SemiBold',
+    fontSize: 15,
   },
 });
