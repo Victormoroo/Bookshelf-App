@@ -1,5 +1,9 @@
 /**
  * Screen — themed background + safe-area padding wrapper. Optionally scrolls.
+ *
+ * The top safe-area inset is ADDED to whatever top padding the caller requests
+ * (instead of being overridden by it), so content never slides under the status
+ * bar / notch.
  */
 import React from 'react';
 import {
@@ -23,6 +27,12 @@ interface ScreenProps {
   scrollProps?: ScrollViewProps;
 }
 
+/** Reads a numeric paddingTop out of a (possibly composed) style. */
+function basePaddingTop(style?: ViewStyle): number {
+  const flat = StyleSheet.flatten(style) as ViewStyle | undefined;
+  return typeof flat?.paddingTop === 'number' ? flat.paddingTop : 0;
+}
+
 export function Screen({
   children,
   scroll = false,
@@ -33,13 +43,16 @@ export function Screen({
 }: ScreenProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const paddingTop = edgeTop ? insets.top : 0;
+  const topInset = edgeTop ? insets.top : 0;
 
   if (scroll) {
     return (
       <ScrollView
         style={[styles.flex, { backgroundColor: colors.bg }, style]}
-        contentContainerStyle={[{ paddingTop }, contentContainerStyle]}
+        contentContainerStyle={[
+          contentContainerStyle,
+          { paddingTop: topInset + basePaddingTop(contentContainerStyle) },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         {...scrollProps}
@@ -50,7 +63,14 @@ export function Screen({
   }
 
   return (
-    <View style={[styles.flex, { backgroundColor: colors.bg, paddingTop }, style]}>
+    <View
+      style={[
+        styles.flex,
+        { backgroundColor: colors.bg },
+        style,
+        { paddingTop: topInset + basePaddingTop(style) },
+      ]}
+    >
       {children}
     </View>
   );
