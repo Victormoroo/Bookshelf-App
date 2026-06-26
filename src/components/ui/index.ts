@@ -1,3 +1,4 @@
+export { ActionSheet, type SheetAction } from './ActionSheet';
 export { AppText } from './AppText';
 export { Avatar } from './Avatar';
 export { Button } from './Button';

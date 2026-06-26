@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
-import { AppText, Avatar, Button, TextField } from '@/components/ui';
+import { ActionSheet, AppText, Avatar, Button, TextField } from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/context/ToastProvider';
 import { removeAvatar, updateProfile, uploadAvatar } from '@/lib/profile';
@@ -40,25 +40,12 @@ export default function EditProfileScreen() {
   // Removal is only applied on Save — going back without saving keeps the photo.
   const [markedForRemoval, setMarkedForRemoval] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
 
   const previewUri = picked?.uri ?? (markedForRemoval ? null : avatarUrl);
   const hasPhoto = !!previewUri;
 
-  const pickImage = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      showToast('Permita o acesso às fotos para escolher uma imagem.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-      base64: true,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
+  const applyAsset = (asset: ImagePicker.ImagePickerAsset) => {
     if (!asset.base64) {
       showToast('Não foi possível ler a imagem.');
       return;
@@ -72,6 +59,40 @@ export default function EditProfileScreen() {
       contentType: asset.mimeType ?? 'image/jpeg',
     });
   };
+
+  const pickFromLibrary = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showToast('Permita o acesso às fotos para escolher uma imagem.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled) applyAsset(result.assets[0]);
+  };
+
+  const takePhoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      showToast('Permita o acesso à câmera para tirar uma foto.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      cameraType: ImagePicker.CameraType.front,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled) applyAsset(result.assets[0]);
+  };
+
+  const choosePhoto = () => setPhotoSheetOpen(true);
 
   const confirmRemovePhoto = () => {
     Alert.alert(
@@ -155,7 +176,7 @@ export default function EditProfileScreen() {
 
           <View style={styles.avatarBlock}>
             <Avatar name={displayName} uri={previewUri} size={104} />
-            <Pressable onPress={pickImage} hitSlop={8} disabled={saving}>
+            <Pressable onPress={choosePhoto} hitSlop={8} disabled={saving}>
               <AppText color={colors.link} style={styles.changePhoto}>
                 Alterar foto
               </AppText>
@@ -188,6 +209,16 @@ export default function EditProfileScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ActionSheet
+        visible={photoSheetOpen}
+        title="Foto de perfil"
+        onClose={() => setPhotoSheetOpen(false)}
+        actions={[
+          { label: 'Tirar foto', icon: 'camera', onPress: takePhoto },
+          { label: 'Escolher da galeria', icon: 'image', onPress: pickFromLibrary },
+        ]}
+      />
     </Screen>
   );
 }

@@ -30,7 +30,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O Bookshelf usa suas fotos para definir a imagem de perfil."
+          "photosPermission": "O Bookshelf usa suas fotos para definir a imagem de perfil.",
+          "cameraPermission": "O Bookshelf usa a câmera para tirar sua foto de perfil."
         }
       ]
     ],
