@@ -37,10 +37,11 @@ export default function EditProfileScreen() {
 
   const [name, setName] = useState(displayName === 'Leitor(a)' ? '' : displayName);
   const [picked, setPicked] = useState<PickedImage | null>(null);
+  // Removal is only applied on Save — going back without saving keeps the photo.
+  const [markedForRemoval, setMarkedForRemoval] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [removing, setRemoving] = useState(false);
 
-  const previewUri = picked?.uri ?? avatarUrl;
+  const previewUri = picked?.uri ?? (markedForRemoval ? null : avatarUrl);
   const hasPhoto = !!previewUri;
 
   const pickImage = async () => {
@@ -63,6 +64,7 @@ export default function EditProfileScreen() {
       return;
     }
     const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+    setMarkedForRemoval(false);
     setPicked({
       uri: asset.uri,
       base64: asset.base64,
@@ -74,37 +76,27 @@ export default function EditProfileScreen() {
   const confirmRemovePhoto = () => {
     Alert.alert(
       'Remover foto',
-      'Deseja remover sua foto de perfil?',
+      'Deseja remover sua foto de perfil? A alteração só será aplicada ao salvar.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Remover', style: 'destructive', onPress: removePhoto },
+        { text: 'Remover', style: 'destructive', onPress: markPhotoForRemoval },
       ],
     );
   };
 
-  const removePhoto = async () => {
-    if (removing) return;
-    // A freshly picked (unsaved) photo with no saved avatar: just discard it.
-    if (picked && !avatarUrl) {
-      setPicked(null);
-      return;
-    }
-    setRemoving(true);
-    try {
-      if (user) await removeAvatar(user.id);
-      setPicked(null);
-      showToast('Foto removida.');
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Não foi possível remover a foto.');
-    } finally {
-      setRemoving(false);
-    }
+  // Local only — nothing is persisted until the user taps "Salvar".
+  const markPhotoForRemoval = () => {
+    setPicked(null);
+    setMarkedForRemoval(true);
   };
 
   const save = async () => {
     if (saving || !user) return;
     setSaving(true);
     try {
+      // Only remove the saved photo on save (and only if there is one).
+      const willRemove = markedForRemoval && !picked && !!avatarUrl;
+
       const data: { name?: string; avatar_url?: string } = {};
       if (name.trim()) data.name = name.trim();
       if (picked) {
@@ -115,12 +107,20 @@ export default function EditProfileScreen() {
           contentType: picked.contentType,
         });
       }
-      if (!data.name && !data.avatar_url) {
+
+      if (!data.name && !data.avatar_url && !willRemove) {
         showToast('Nada para salvar.');
         setSaving(false);
         return;
       }
-      await updateProfile(data);
+
+      if (willRemove) {
+        await removeAvatar(user.id); // deletes the file + clears avatar_url
+        if (data.name) await updateProfile({ name: data.name });
+      } else {
+        await updateProfile(data);
+      }
+
       showToast('Perfil atualizado.');
       router.back();
     } catch (e) {
@@ -155,15 +155,15 @@ export default function EditProfileScreen() {
 
           <View style={styles.avatarBlock}>
             <Avatar name={displayName} uri={previewUri} size={104} />
-            <Pressable onPress={pickImage} hitSlop={8} disabled={removing}>
+            <Pressable onPress={pickImage} hitSlop={8} disabled={saving}>
               <AppText color={colors.link} style={styles.changePhoto}>
                 Alterar foto
               </AppText>
             </Pressable>
             {hasPhoto && (
-              <Pressable onPress={confirmRemovePhoto} hitSlop={8} disabled={removing}>
+              <Pressable onPress={confirmRemovePhoto} hitSlop={8} disabled={saving}>
                 <AppText color={palette.error} style={styles.removePhoto}>
-                  {removing ? 'Removendo…' : 'Remover foto'}
+                  Remover foto
                 </AppText>
               </Pressable>
             )}
