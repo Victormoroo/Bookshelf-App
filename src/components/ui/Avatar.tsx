@@ -23,6 +23,8 @@ export function Avatar({ name, uri, size = 58 }: AvatarProps) {
     return (
       <Image
         source={{ uri }}
+        // Decode at display size — fast/cheap when the source is a large photo.
+        resizeMethod="resize"
         style={{ width: size, height: size, borderRadius: radius, backgroundColor: palette.primary }}
         accessibilityIgnoresInvertColors
       />
