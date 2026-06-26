@@ -3,6 +3,7 @@
  * user_metadata; the photo is uploaded to Supabase Storage (bucket `avatars`)
  * and its public URL is saved to user_metadata.avatar_url.
  */
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -25,10 +26,10 @@ import { fonts, space, useTheme } from '@/theme';
 
 interface PickedImage {
   uri: string;
-  base64: string;
-  ext: string;
-  contentType: string;
 }
+
+/** Avatar images are downscaled to this width before upload. */
+const AVATAR_MAX_WIDTH = 512;
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
@@ -45,19 +46,11 @@ export default function EditProfileScreen() {
   const previewUri = picked?.uri ?? (markedForRemoval ? null : avatarUrl);
   const hasPhoto = !!previewUri;
 
+  // Store only the uri — encoding to base64 is deferred to save (after a resize)
+  // so the picker returns immediately and the preview shows without delay.
   const applyAsset = (asset: ImagePicker.ImagePickerAsset) => {
-    if (!asset.base64) {
-      showToast('Não foi possível ler a imagem.');
-      return;
-    }
-    const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
     setMarkedForRemoval(false);
-    setPicked({
-      uri: asset.uri,
-      base64: asset.base64,
-      ext: ext === 'heic' ? 'jpg' : ext,
-      contentType: asset.mimeType ?? 'image/jpeg',
-    });
+    setPicked({ uri: asset.uri });
   };
 
   const pickFromLibrary = async () => {
@@ -71,7 +64,6 @@ export default function EditProfileScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
-      base64: true,
     });
     if (!result.canceled) applyAsset(result.assets[0]);
   };
@@ -87,7 +79,6 @@ export default function EditProfileScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
-      base64: true,
     });
     if (!result.canceled) applyAsset(result.assets[0]);
   };
@@ -121,11 +112,19 @@ export default function EditProfileScreen() {
       const data: { name?: string; avatar_url?: string } = {};
       if (name.trim()) data.name = name.trim();
       if (picked) {
+        // Downscale + JPEG-encode here (not at capture) — keeps the preview
+        // instant and the upload small.
+        const image = await manipulateAsync(
+          picked.uri,
+          [{ resize: { width: AVATAR_MAX_WIDTH } }],
+          { compress: 0.7, format: SaveFormat.JPEG, base64: true },
+        );
+        if (!image.base64) throw new Error('Falha ao processar a imagem.');
         data.avatar_url = await uploadAvatar({
           userId: user.id,
-          base64: picked.base64,
-          ext: picked.ext,
-          contentType: picked.contentType,
+          base64: image.base64,
+          ext: 'jpg',
+          contentType: 'image/jpeg',
         });
       }
 
