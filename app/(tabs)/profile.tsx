@@ -5,13 +5,14 @@
  */
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
 import { SettingsSheet, StatCard } from '@/components/profile';
-import { AppText, Avatar, Icon } from '@/components/ui';
+import { ActionSheet, AppText, Avatar, Icon } from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useLibrary } from '@/context/LibraryProvider';
+import { useAvatarPhoto } from '@/hooks/useAvatarPhoto';
 import { palette, space, statusColor, useTheme } from '@/theme';
 
 export default function ProfileScreen() {
@@ -19,6 +20,7 @@ export default function ProfileScreen() {
   const { displayName, avatarUrl, isAdmin, signOut } = useAuth();
   const { counts, total, pagesRead, reset } = useLibrary();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const photo = useAvatarPhoto();
 
   const logout = async () => {
     setSettingsOpen(false);
@@ -31,7 +33,19 @@ export default function ProfileScreen() {
     <Screen scroll contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.identity}>
-          <Avatar name={displayName} uri={avatarUrl} size={58} />
+          <Pressable
+            onPress={photo.open}
+            disabled={photo.busy}
+            accessibilityRole="button"
+            accessibilityLabel="Alterar foto de perfil"
+          >
+            <Avatar name={displayName} uri={avatarUrl} size={58} />
+            {photo.busy && (
+              <View style={styles.avatarBusy}>
+                <ActivityIndicator color={palette.onPrimary} />
+              </View>
+            )}
+          </Pressable>
           <View style={styles.identityText}>
             <AppText color={colors.text} style={styles.name} numberOfLines={1}>
               {displayName}
@@ -102,6 +116,8 @@ export default function ProfileScreen() {
         onClose={() => setSettingsOpen(false)}
         onLogout={logout}
       />
+
+      <ActionSheet {...photo.actionSheetProps} />
     </Screen>
   );
 }
@@ -111,6 +127,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4] + 4,
     paddingTop: space[2],
     paddingBottom: space[6],
+  },
+  avatarBusy: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 29,
+    backgroundColor: 'rgba(12,24,22,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',

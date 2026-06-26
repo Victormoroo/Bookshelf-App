@@ -31,6 +31,8 @@ interface ActionSheetProps {
   title?: string;
   actions: SheetAction[];
   cancelLabel?: string;
+  /** When set, a trash icon is shown at the left of the title. */
+  onDelete?: () => void;
   onClose: () => void;
 }
 
@@ -39,6 +41,7 @@ export function ActionSheet({
   title,
   actions,
   cancelLabel = 'Cancelar',
+  onDelete,
   onClose,
 }: ActionSheetProps) {
   const { colors } = useTheme();
@@ -80,10 +83,24 @@ export function ActionSheet({
             },
           ]}
         >
-          {title && (
-            <AppText variant="label" color={palette.primaryMuted} style={styles.title}>
-              {title}
-            </AppText>
+          {(title || onDelete) && (
+            <View style={styles.header}>
+              {title && (
+                <AppText variant="label" color={palette.primaryMuted} style={styles.title}>
+                  {title}
+                </AppText>
+              )}
+              {onDelete && (
+                <Pressable
+                  onPress={() => run(onDelete)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remover foto"
+                >
+                  <Icon name="trash" size={22} color={palette.error} />
+                </Pressable>
+              )}
+            </View>
           )}
 
           {actions.map((action, i) => (
@@ -136,10 +153,15 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 26,
     padding: 22,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 10,
     letterSpacing: 0.12 * 10,
-    marginBottom: 12,
   },
   row: {
     flexDirection: 'row',

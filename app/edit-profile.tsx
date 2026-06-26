@@ -3,8 +3,6 @@
  * user_metadata; the photo is uploaded to Supabase Storage (bucket `avatars`)
  * and its public URL is saved to user_metadata.avatar_url.
  */
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -21,15 +19,14 @@ import { Screen } from '@/components/layout/Screen';
 import { ActionSheet, AppText, Avatar, Button, TextField, type SheetAction } from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/context/ToastProvider';
-import { removeAvatar, updateProfile, uploadAvatar } from '@/lib/profile';
+import {
+  pickAvatarUri,
+  removeAvatar,
+  updateProfile,
+  uploadAvatarFromUri,
+  type AvatarSource,
+} from '@/lib/profile';
 import { fonts, space, useTheme } from '@/theme';
-
-interface PickedImage {
-  uri: string;
-}
-
-/** Avatar images are downscaled to this width before upload. */
-const AVATAR_MAX_WIDTH = 512;
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
@@ -37,50 +34,30 @@ export default function EditProfileScreen() {
   const { showToast } = useToast();
 
   const [name, setName] = useState(displayName === 'Leitor(a)' ? '' : displayName);
-  const [picked, setPicked] = useState<PickedImage | null>(null);
+  // Just the picked uri — changes are previewed and only persisted on Save.
+  const [pickedUri, setPickedUri] = useState<string | null>(null);
   // Removal is only applied on Save — going back without saving keeps the photo.
   const [markedForRemoval, setMarkedForRemoval] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
 
-  const previewUri = picked?.uri ?? (markedForRemoval ? null : avatarUrl);
+  const previewUri = pickedUri ?? (markedForRemoval ? null : avatarUrl);
   const hasPhoto = !!previewUri;
 
-  // Store only the uri — encoding to base64 is deferred to save (after a resize)
-  // so the picker returns immediately and the preview shows without delay.
-  const applyAsset = (asset: ImagePicker.ImagePickerAsset) => {
-    setMarkedForRemoval(false);
-    setPicked({ uri: asset.uri });
-  };
-
-  const pickFromLibrary = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      showToast('Permita o acesso às fotos para escolher uma imagem.');
+  const pickFromSource = async (source: AvatarSource) => {
+    const result = await pickAvatarUri(source);
+    if (result.status === 'denied') {
+      showToast(
+        source === 'camera'
+          ? 'Permita o acesso à câmera para tirar uma foto.'
+          : 'Permita o acesso às fotos para escolher uma imagem.',
+      );
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-    if (!result.canceled) applyAsset(result.assets[0]);
-  };
-
-  const takePhoto = async () => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      showToast('Permita o acesso à câmera para tirar uma foto.');
-      return;
+    if (result.status === 'ok') {
+      setMarkedForRemoval(false);
+      setPickedUri(result.uri);
     }
-    const result = await ImagePicker.launchCameraAsync({
-      cameraType: ImagePicker.CameraType.front,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-    if (!result.canceled) applyAsset(result.assets[0]);
   };
 
   const choosePhoto = () => setPhotoSheetOpen(true);
@@ -98,7 +75,7 @@ export default function EditProfileScreen() {
 
   // Local only — nothing is persisted until the user taps "Salvar".
   const markPhotoForRemoval = () => {
-    setPicked(null);
+    setPickedUri(null);
     setMarkedForRemoval(true);
   };
 
@@ -107,25 +84,12 @@ export default function EditProfileScreen() {
     setSaving(true);
     try {
       // Only remove the saved photo on save (and only if there is one).
-      const willRemove = markedForRemoval && !picked && !!avatarUrl;
+      const willRemove = markedForRemoval && !pickedUri && !!avatarUrl;
 
       const data: { name?: string; avatar_url?: string } = {};
       if (name.trim()) data.name = name.trim();
-      if (picked) {
-        // Downscale + JPEG-encode here (not at capture) — keeps the preview
-        // instant and the upload small.
-        const image = await manipulateAsync(
-          picked.uri,
-          [{ resize: { width: AVATAR_MAX_WIDTH } }],
-          { compress: 0.7, format: SaveFormat.JPEG, base64: true },
-        );
-        if (!image.base64) throw new Error('Falha ao processar a imagem.');
-        data.avatar_url = await uploadAvatar({
-          userId: user.id,
-          base64: image.base64,
-          ext: 'jpg',
-          contentType: 'image/jpeg',
-        });
+      if (pickedUri) {
+        data.avatar_url = await uploadAvatarFromUri(user.id, pickedUri);
       }
 
       if (!data.name && !data.avatar_url && !willRemove) {
@@ -151,17 +115,9 @@ export default function EditProfileScreen() {
   };
 
   const photoActions: SheetAction[] = [
-    { label: 'Tirar foto', icon: 'camera', onPress: takePhoto },
-    { label: 'Escolher da galeria', icon: 'image', onPress: pickFromLibrary },
+    { label: 'Tirar foto', icon: 'camera', onPress: () => pickFromSource('camera') },
+    { label: 'Escolher da galeria', icon: 'image', onPress: () => pickFromSource('library') },
   ];
-  if (hasPhoto) {
-    photoActions.push({
-      label: 'Remover foto',
-      icon: 'trash',
-      onPress: confirmRemovePhoto,
-      destructive: true,
-    });
-  }
 
   return (
     <Screen>
@@ -220,6 +176,7 @@ export default function EditProfileScreen() {
         title="Foto de perfil"
         onClose={() => setPhotoSheetOpen(false)}
         actions={photoActions}
+        onDelete={hasPhoto ? confirmRemovePhoto : undefined}
       />
     </Screen>
   );

@@ -6,10 +6,44 @@
  * for the bucket + policies setup); only the resulting public URL is stored.
  */
 import { decode } from 'base64-arraybuffer';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 
 import { supabase } from './supabase';
 
 const AVATAR_BUCKET = 'avatars';
+/** Avatar images are downscaled to this width before upload. */
+const AVATAR_MAX_WIDTH = 512;
+
+export type AvatarSource = 'camera' | 'library';
+export type PickAvatarResult =
+  | { status: 'ok'; uri: string }
+  | { status: 'denied' }
+  | { status: 'canceled' };
+
+/**
+ * Launches the camera (front-facing) or the library and returns the picked
+ * image uri. base64 is NOT requested here — encoding happens at upload time so
+ * the picker returns fast.
+ */
+export async function pickAvatarUri(source: AvatarSource): Promise<PickAvatarResult> {
+  const common = { allowsEditing: true, aspect: [1, 1] as [number, number], quality: 0.5 };
+
+  if (source === 'camera') {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) return { status: 'denied' };
+    const result = await ImagePicker.launchCameraAsync({
+      cameraType: ImagePicker.CameraType.front,
+      ...common,
+    });
+    return result.canceled ? { status: 'canceled' } : { status: 'ok', uri: result.assets[0].uri };
+  }
+
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) return { status: 'denied' };
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], ...common });
+  return result.canceled ? { status: 'canceled' } : { status: 'ok', uri: result.assets[0].uri };
+}
 
 /** Updates name and/or avatar URL in user_metadata. */
 export async function updateProfile(data: { name?: string; avatar_url?: string }): Promise<void> {
@@ -38,6 +72,17 @@ export async function uploadAvatar(params: {
   const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
   // Cache-bust so the new image shows immediately (same path is reused).
   return `${data.publicUrl}?t=${Date.now()}`;
+}
+
+/** Resizes + JPEG-encodes a picked image uri, uploads it, returns the URL. */
+export async function uploadAvatarFromUri(userId: string, uri: string): Promise<string> {
+  const image = await manipulateAsync(uri, [{ resize: { width: AVATAR_MAX_WIDTH } }], {
+    compress: 0.7,
+    format: SaveFormat.JPEG,
+    base64: true,
+  });
+  if (!image.base64) throw new Error('Falha ao processar a imagem.');
+  return uploadAvatar({ userId, base64: image.base64, ext: 'jpg', contentType: 'image/jpeg' });
 }
 
 /** Removes the user's avatar: deletes the stored file(s) and clears the URL. */
