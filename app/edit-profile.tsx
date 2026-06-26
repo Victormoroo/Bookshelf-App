@@ -17,11 +17,11 @@ import {
 } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
-import { ActionSheet, AppText, Avatar, Button, TextField } from '@/components/ui';
+import { ActionSheet, AppText, Avatar, Button, TextField, type SheetAction } from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/context/ToastProvider';
 import { removeAvatar, updateProfile, uploadAvatar } from '@/lib/profile';
-import { fonts, palette, space, useTheme } from '@/theme';
+import { fonts, space, useTheme } from '@/theme';
 
 interface PickedImage {
   uri: string;
@@ -151,6 +151,19 @@ export default function EditProfileScreen() {
     }
   };
 
+  const photoActions: SheetAction[] = [
+    { label: 'Tirar foto', icon: 'camera', onPress: takePhoto },
+    { label: 'Escolher da galeria', icon: 'image', onPress: pickFromLibrary },
+  ];
+  if (hasPhoto) {
+    photoActions.push({
+      label: 'Remover foto',
+      icon: 'trash',
+      onPress: confirmRemovePhoto,
+      destructive: true,
+    });
+  }
+
   return (
     <Screen>
       <KeyboardAvoidingView
@@ -181,13 +194,6 @@ export default function EditProfileScreen() {
                 Alterar foto
               </AppText>
             </Pressable>
-            {hasPhoto && (
-              <Pressable onPress={confirmRemovePhoto} hitSlop={8} disabled={saving}>
-                <AppText color={palette.error} style={styles.removePhoto}>
-                  Remover foto
-                </AppText>
-              </Pressable>
-            )}
           </View>
 
           <View style={styles.form}>
@@ -214,10 +220,7 @@ export default function EditProfileScreen() {
         visible={photoSheetOpen}
         title="Foto de perfil"
         onClose={() => setPhotoSheetOpen(false)}
-        actions={[
-          { label: 'Tirar foto', icon: 'camera', onPress: takePhoto },
-          { label: 'Escolher da galeria', icon: 'image', onPress: pickFromLibrary },
-        ]}
+        actions={photoActions}
       />
     </Screen>
   );
@@ -253,10 +256,6 @@ const styles = StyleSheet.create({
     marginTop: space[6],
   },
   changePhoto: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-  },
-  removePhoto: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
   },
