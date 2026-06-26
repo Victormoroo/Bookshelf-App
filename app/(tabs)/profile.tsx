@@ -9,7 +9,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
 import { SettingsSheet, StatCard } from '@/components/profile';
-import { ActionSheet, AppText, Avatar, Icon } from '@/components/ui';
+import { ActionSheet, AppText, Avatar, Icon, ImageViewer } from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useLibrary } from '@/context/LibraryProvider';
 import { useAvatarPhoto } from '@/hooks/useAvatarPhoto';
@@ -118,6 +118,7 @@ export default function ProfileScreen() {
       />
 
       <ActionSheet {...photo.actionSheetProps} />
+      <ImageViewer {...photo.imageViewer} />
     </Screen>
   );
 }

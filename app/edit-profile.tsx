@@ -16,7 +16,15 @@ import {
 } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
-import { ActionSheet, AppText, Avatar, Button, TextField, type SheetAction } from '@/components/ui';
+import {
+  ActionSheet,
+  AppText,
+  Avatar,
+  Button,
+  ImageViewer,
+  TextField,
+  type SheetAction,
+} from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/context/ToastProvider';
 import {
@@ -40,6 +48,7 @@ export default function EditProfileScreen() {
   const [markedForRemoval, setMarkedForRemoval] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const previewUri = pickedUri ?? (markedForRemoval ? null : avatarUrl);
   const hasPhoto = !!previewUri;
@@ -114,10 +123,14 @@ export default function EditProfileScreen() {
     }
   };
 
-  const photoActions: SheetAction[] = [
+  const photoActions: SheetAction[] = [];
+  if (hasPhoto) {
+    photoActions.push({ label: 'Ver foto', icon: 'eye', onPress: () => setViewerOpen(true) });
+  }
+  photoActions.push(
     { label: 'Tirar foto', icon: 'camera', onPress: () => pickFromSource('camera') },
     { label: 'Escolher da galeria', icon: 'image', onPress: () => pickFromSource('library') },
-  ];
+  );
 
   return (
     <Screen>
@@ -178,6 +191,8 @@ export default function EditProfileScreen() {
         actions={photoActions}
         onDelete={hasPhoto ? confirmRemovePhoto : undefined}
       />
+
+      <ImageViewer visible={viewerOpen} uri={previewUri} onClose={() => setViewerOpen(false)} />
     </Screen>
   );
 }

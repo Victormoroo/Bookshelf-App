@@ -7,6 +7,7 @@ export { BookSpines } from './BookSpines';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
 export { Icon, type IconName } from './Icon';
+export { ImageViewer } from './ImageViewer';
 export { Logo } from './Logo';
 export { ProgressBar } from './ProgressBar';
 export { SearchBar } from './SearchBar';

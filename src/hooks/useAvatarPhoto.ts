@@ -23,6 +23,7 @@ export function useAvatarPhoto() {
   const { user, avatarUrl } = useAuth();
   const { showToast } = useToast();
   const [visible, setVisible] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const pick = useCallback(
@@ -76,10 +77,14 @@ export function useAvatarPhoto() {
   }, [user, showToast]);
 
   const actionSheetProps = useMemo(() => {
-    const actions: SheetAction[] = [
+    const actions: SheetAction[] = [];
+    if (avatarUrl) {
+      actions.push({ label: 'Ver foto', icon: 'eye', onPress: () => setViewerVisible(true) });
+    }
+    actions.push(
       { label: 'Tirar foto', icon: 'camera', onPress: () => pick('camera') },
       { label: 'Escolher da galeria', icon: 'image', onPress: () => pick('library') },
-    ];
+    );
     return {
       visible,
       title: 'Foto de perfil',
@@ -89,5 +94,10 @@ export function useAvatarPhoto() {
     };
   }, [visible, avatarUrl, pick, confirmRemove]);
 
-  return { open: () => setVisible(true), busy, actionSheetProps };
+  const imageViewer = useMemo(
+    () => ({ visible: viewerVisible, uri: avatarUrl, onClose: () => setViewerVisible(false) }),
+    [viewerVisible, avatarUrl],
+  );
+
+  return { open: () => setVisible(true), busy, actionSheetProps, imageViewer };
 }
